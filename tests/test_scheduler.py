@@ -114,6 +114,31 @@ class TestCronParser:
         assert '매주' in desc
         assert '일' in desc
 
+    @pytest.mark.parametrize("language, expr, expected", [
+        ("ko", '0 12 1 * *', '매월 1일 12:00'),
+        ("ko", '30 6 * * 1-5', '평일 06:30'),
+        ("ko", '0 0 * * 0', '매주 일요일 00:00'),
+        ("ko", '0 3 * * *', '매일 03:00'),
+        ("en", '0 12 1 * *', 'Monthly on day 1 at 12:00'),
+        ("en", '30 6 * * 1-5', 'Weekdays at 06:30'),
+        ("en", '0 0 * * 0', 'Weekly on Sunday at 00:00'),
+        ("en", '0 3 * * 7', 'Weekly on Sunday at 03:00'),
+        ("en", '0 3 * * *', 'Daily at 03:00'),
+        ("en", '0 */2 * * *', '0 */2 * * *'),
+        ("en", 'invalid expr', 'invalid expr'),
+    ])
+    def test_describe_follows_ui_language_with_padded_time(self, language, expr, expected):
+        """describe는 현재 UI 언어로 직접 출력하고 시:분을 두 자리로 맞춘다 (#337)"""
+        from src.core import i18n
+        from src.core.scheduler import CronParser
+
+        previous = i18n.current_language()
+        i18n.set_language(language)
+        try:
+            assert CronParser.describe(expr) == expected
+        finally:
+            i18n.set_language(previous)
+
 
 # =====================================================================
 # ScheduleConfig 테스트
