@@ -1011,6 +1011,55 @@ class TestConfigManager:
 
         assert success is False
         assert "1~65535" in msg
+
+    @pytest.mark.parametrize(
+        ("field", "value", "expected"),
+        [
+            ("bastion_port", "abc", "숫자여야"),
+            ("bastion_port", 70000, "1~65535"),
+            ("bastion_port", 0, "1~65535"),
+            ("remote_port", True, "숫자여야"),
+            ("local_port", True, "숫자여야"),
+        ],
+    )
+    def test_import_config_rejects_bad_port_and_keeps_config(self, tmp_path, field, value, expected):
+        """bastion_port 도 검증하고 bool 은 포트로 받지 않는다 (#348)"""
+        before = self.config_mgr.load_config()
+        entry = {
+            'id': 'test-1',
+            'name': 'server',
+            'remote_host': 'db.example.com',
+            'remote_port': 3306,
+            'local_port': 13306,
+            'bastion_host': 'bastion.example.com',
+            'bastion_port': 22,
+        }
+        entry[field] = value
+        bad_file = tmp_path / 'bad_port.json'
+        bad_file.write_text(json.dumps({'tunnels': [entry]}), encoding='utf-8')
+
+        success, msg = self.config_mgr.import_config(str(bad_file))
+
+        assert success is False
+        assert field in msg and expected in msg
+        assert self.config_mgr.load_config() == before
+
+    def test_import_config_accepts_valid_bastion_port(self, tmp_path):
+        ok_file = tmp_path / 'ok_port.json'
+        ok_file.write_text(json.dumps({'tunnels': [{
+            'id': 'test-1',
+            'name': 'server',
+            'remote_host': 'db.example.com',
+            'remote_port': 3306,
+            'bastion_host': 'bastion.example.com',
+            'bastion_port': 2222,
+        }]}), encoding='utf-8')
+
+        success, msg = self.config_mgr.import_config(str(ok_file))
+
+        assert success is True, msg
+        assert self.config_mgr.load_config()['tunnels'][0]['bastion_port'] == 2222
+
     def test_import_config_invalid_json(self, tmp_path):
         """잘못된 JSON 파일 가져오기 실패 테스트"""
         broken_file = tmp_path / 'broken.json'

@@ -514,7 +514,8 @@ class ConfigManager:
 
     def _validate_port(self, value, field_name: str) -> Tuple[bool, str]:
         """포트 유효성 검증"""
-        if not isinstance(value, int):
+        # bool 은 int 의 하위 클래스라 True 가 포트 1 로 통과하지 않게 따로 막는다
+        if isinstance(value, bool) or not isinstance(value, int):
             return False, f"{field_name}는 숫자여야 합니다."
 
         if not 1 <= value <= 65535:
@@ -557,10 +558,11 @@ class ConfigManager:
             if not valid:
                 return False, f"{msg} ({idx}번째 항목)"
 
-            if 'local_port' in tunnel and tunnel.get('local_port') not in (None, ''):
-                valid, msg = self._validate_port(tunnel.get('local_port'), 'local_port')
-                if not valid:
-                    return False, f"{msg} ({idx}번째 항목)"
+            for port_field in ('local_port', 'bastion_port'):
+                if tunnel.get(port_field) not in (None, ''):
+                    valid, msg = self._validate_port(tunnel.get(port_field), port_field)
+                    if not valid:
+                        return False, f"{msg} ({idx}번째 항목)"
 
             db_engine = tunnel.get('db_engine')
             if db_engine not in (None, '', 'mysql', 'postgresql'):
