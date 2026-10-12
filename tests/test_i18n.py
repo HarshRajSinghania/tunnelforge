@@ -321,3 +321,37 @@ def test_direct_hardcoded_qt_ui_strings_have_english_runtime_translation():
                     untranslated.append(f"{path.relative_to(project_root)}:{node.lineno}: {value}")
 
     assert untranslated == []
+
+
+def test_update_check_error_messages_are_fully_english_in_english_ui(monkeypatch):
+    from unittest.mock import MagicMock
+
+    import requests
+
+    from src.core import update_checker
+
+    missing_tag = MagicMock()
+    missing_tag.json.return_value = {"tag_name": ""}
+    bad_json = MagicMock()
+    bad_json.json.side_effect = ValueError("boom")
+
+    messages = []
+    for outcome in (requests.exceptions.ConnectionError("timed out"), bad_json, missing_tag):
+        monkeypatch.setattr(update_checker.requests, "get", MagicMock(side_effect=[outcome]))
+        messages.append(update_checker.UpdateChecker().check_update()[3])
+
+    def has_hangul(text):
+        return any("가" <= char <= "힣" for char in text)
+
+    assert all(has_hangul(message) for message in messages)
+    assert [i18n.translate_text(message) for message in messages] == messages
+
+    i18n.set_language("en")
+    translated = [i18n.translate_text(message) for message in messages]
+    assert translated == [
+        "Network error: timed out",
+        "Update check failed: boom",
+        "Version information not found",
+    ]
+    html = i18n.translate_text(f'<div style="color: #e74c3c;">❌ {messages[0]}</div>')
+    assert not has_hangul(html)

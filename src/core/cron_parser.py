@@ -4,6 +4,7 @@
 from datetime import datetime
 from typing import Optional
 
+from src.core.i18n.keys import tr
 from src.core.logger import get_logger
 from src.core.schedule_time import next_occurrence
 
@@ -46,34 +47,32 @@ class CronParser:
 
     @staticmethod
     def describe(expression: str) -> str:
-        """Cron 표현식을 사람이 읽기 쉬운 형태로 변환"""
+        """Cron 표현식을 현재 UI 언어의 사람이 읽기 쉬운 형태로 변환 (미지원 형식은 원본 반환)"""
         try:
             parts = expression.strip().split()
             if len(parts) != 5:
                 return expression
 
             minute, hour, day, month, dow = parts
+            if not (minute.isdigit() and hour.isdigit()) or month != '*':
+                return expression
+            time = f"{int(hour):02d}:{int(minute):02d}"
 
             # 매일
-            if day == '*' and month == '*' and dow == '*':
-                if minute == '0' and hour != '*':
-                    return f"매일 {hour}:00"
-                elif minute != '*' and hour != '*':
-                    return f"매일 {hour}:{minute.zfill(2)}"
+            if day == '*' and dow == '*':
+                return tr("cron.daily").format(time=time)
 
-            # 매주
-            dow_names = ['일', '월', '화', '수', '목', '금', '토']
-            if day == '*' and month == '*' and dow != '*':
-                if dow.isdigit():
-                    dow_index = 0 if int(dow) == 7 else int(dow)
-                    day_name = dow_names[dow_index]
-                    return f"매주 {day_name}요일 {hour}:{minute.zfill(2)}"
-                elif dow == '1-5':
-                    return f"평일 {hour}:{minute.zfill(2)}"
+            # 매주 / 평일
+            if day == '*':
+                if dow.isdigit() and int(dow) <= 7:
+                    weekday = tr(f"cron.dow.{int(dow) % 7}")  # 7 = 일요일
+                    return tr("cron.weekly").format(day=weekday, time=time)
+                if dow == '1-5':
+                    return tr("cron.weekdays").format(time=time)
 
             # 매월
-            if day != '*' and month == '*' and dow == '*':
-                return f"매월 {day}일 {hour}:{minute.zfill(2)}"
+            elif dow == '*' and day.isdigit():
+                return tr("cron.monthly").format(day=int(day), time=time)
 
             return expression
 

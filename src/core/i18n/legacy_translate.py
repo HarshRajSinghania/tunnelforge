@@ -1335,6 +1335,10 @@ _EN_PHRASE_TRANSLATIONS = {
     "스키마명": "schema name",
     "Production: 위험 작업 시 스키마명 직접 입력 필요\nStaging: 위험 작업 시 확인 다이얼로그 표시\nDevelopment: 확인 없이 바로 실행": "Production: schema name must be entered for dangerous operations\nStaging: confirmation dialog is shown for dangerous operations\nDevelopment: runs immediately without confirmation",
     "DB Engine을 선택해주세요.\nMySQL 또는 PostgreSQL을 명시해야 합니다.": "Select DB Engine.\nMySQL or PostgreSQL must be specified.",
+    # update_checker / update_downloader / UpdateCheckerThread error messages (#336)
+    "네트워크 오류": "Network error",
+    "업데이트 확인 실패": "Update check failed",
+    "버전 정보를 찾을 수 없습니다": "Version information not found",
 }
 
 _EN_REGEX_TRANSLATIONS = (
